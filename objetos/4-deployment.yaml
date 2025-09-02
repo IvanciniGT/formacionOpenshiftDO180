@@ -1,0 +1,38 @@
+
+kind:           Deployment
+apiVersion:     apps/v1 # Es una librería que viene con kubernetes... pero no es la librería base.
+
+metadata:
+    name:       minginx
+
+spec:
+
+    replicas:   3 # Número de pods que quiero que haya siempre
+
+    selector:
+        matchLabels:
+            app:    servidor-web # Esta etiqueta, vincula el deployment al template
+
+    template:
+
+      metadata:
+          name:       plantilla-nginx
+          labels:
+              app:    servidor-web   # Puedo usar lo que quiera tanto como clave, como como valor
+                                     # Es muy estándar el uso de la clave `app`
+      spec:
+        containers:
+              -   name:                   contenedor-1
+                  image:                  nginx:latest
+                  imagePullPolicy:        Always
+
+# Esto lo cargaríamos en kubernetes / oc igual:
+# $ kubectl apply -f 4-deployment.yaml -n desarrollo
+# $ oc      apply -f 4-deployment.yaml -n desarrollo
+
+# Podríamos comenzar a escalarlo luego manualmente:
+# $ kubectl scale deployment minginx --replicas=5 -n desarrollo
+# $ oc      scale deployment minginx --replicas=5 -n desarrollo
+
+# Más adelante veremos que también podemos pedir a kubernetes que él se encargue de escalarlo...
+# Eso lo haremos con otro objeto de configuración: Horizontal Pod Autoscaler (HPA)

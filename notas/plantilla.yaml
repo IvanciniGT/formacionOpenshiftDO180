@@ -1,0 +1,157 @@
+# Lo primero, en un documentos yaml puedo poner comentarios.. con el #
+# Dentro de un archivo YAML, puedo tener muchos documentos YAML
+# Los documentos se separan entre si por ---
+# De hecho la marca --- es el símbolo de INICIO DE DOCUMENTO
+# (Que se pone en todos los documentos de un fichero, menos en el primero)
+# Puede ser que encontréis en un momento dado ... 
+# Eso es el símbolo de fin de documento. Solo se usa (o tiene sentido usarlo) en comunicaciones por red online
+---
+# Un documento yaml es un NODO.
+# Los nodos en yaml pueden ser de 2 tipos: ESCALARES ( o valore simples) o de COLECCIÓN
+---
+# Nodos escalares: 
+# Números
+3
+---
+-3.3
+---
+.Inf # .INF .inf
+---
+.NaN # .NAN .nan
+---
+# Valores lógicos:
+true # TRUE True
+---
+false # FALSE False
+---
+# En versiones antiguas (1.0 y 1.1) de YAML, como valores lógicos se admitían: yes, no, on, off, y, n (con variantes: YES, Yes, Off...)
+# Eso y ano está en la spec. Lo hicieron fatal.. los de YAML... y no lo deprecaron.
+# Muchos parsers de YAML (La mayoría) siguen admitiéndolos... por retrocompatibilidad, ya que los de YAML no dieron opción a que la gente pudiera hacer una migración tranquila.
+---
+# Textos (Con diferencia lo más complejo que hay en YAML)
+hola\n, "s
+
+oy 'u
+n #texto
+---
+'hola\n, "s
+
+oy ''u
+n #texto'
+---
+"hola\n, \"s
+
+oy 'u
+n #texto"
+# La barra de escape solo actúa como barra de escape al usar comillas dobles:
+# \" \\ \n \t
+# RESUMEN. Siempre usamos la sintaxis sin comillas (es la preferida en YAML)
+# Solo usamos las comillas (simples o dobles) cuando necesitemos evitar ambigüedades
+# Y ESTAS SINTAXIS SOLO PARA TEXTOS DE UNA LINEA
+---
+# Sintaxis literal
+|4+
+     Puedo escribir el texto que quiera
+    Con los saltos de linea que quiera
+       Con los caracteres raro que necesite, como #, \, \\, ... , -
+
+# La indentación de la primera linea es eliminada del resto de lineas
+---
+# Sintaxis folded
+
+>-
+ Puedo escribir el texto que quiera
+ Con los saltos de linea que quiera, aunque serán reemplazados por espacios en blanco
+ Con los caracteres raro que necesite, como #, \, \\, ... , -
+
+# muy útil para comandos por ejemplo
+---
+>+
+    docker container create
+      --name minginx
+      -p 8080:80
+      -e VARIANT=production
+      -v /path/to/local/dir:/usr/share/nginx/html
+      nginx:latest
+---
+# Nodos de colección: Listas ordenadas, Mapas desordenados.
+# Listas ordenadas: Es una colección ordenada de nodos.
+- Nodo1
+- Nodo2
+- 33
+- true
+---
+# Se admiten también sublistas
+-      Nodo1
+- Nodo2
+-   33
+- true
+- 
+    - Subnodo1 # Al menos he de indentar 1 hacia la derecha la sublista... Puedo usar el sangrado que quiera..
+               # Y debo respetar ese sangrado en el nivel que esté
+    - Subnodo2
+- 
+  - Subnodo1 # En otro nivel puedo usar otro sangrado distinto
+  - Subnodo2
+---
+# Hay una sintaxis alternativa para listas
+- Nodo2
+- 33
+- True
+
+---
+# Hay una sintaxis alternativa para listas
+- Nodo2
+- 
+  - Subitem1
+  - Subitem2
+
+- - Subitem1
+  - Subitem2
+
+# Las dos sintaxis anteriores de sublistas son iguales.
+---
+[ Nodo1, 33, True ] # esto también sirve... Y NO LO USAMOS! No es la sintaxis recomendada en YAML.
+# Esa sintaxis existe solo por 2 motivos:
+# Compatibilidad con JSON :               [ "Nodo2", 33, true ]
+# Es segundo escenario donde podemos usarla... debemos.. no hay alternativa es para representar una lista VACÍA: 
+---
+[]
+---
+# Por qué no está recomendada esta sintaxis:
+# - No es tan clara como la sintaxis de lista estándar
+# - Estos archivos donde acaban, dónde los guardo? En un sistema de control de versiones... 
+#   Y los sistemas de control de versiones identifican cambios a nivel de LINEA DE CÓDIGO
+---
+# Nodos de tipo MAPA DESORDENADO. Son colecciones clave/valor: Mapa, Diccionario, Array Asociativo
+clave1: valor1
+clave2:   33
+clave3:     true
+clave4: 
+    - subvalor1
+    - subvalor2
+clave5:
+  subclave1: subvalor1
+  subclave2: subvalor2
+clave6:
+    subclave1: subvalor1
+    subclave2: subvalor2
+---
+# YAML Ofrece una segunda sintaxis para los mapas... desaconsejada por los mismo motivos que en las listas:
+clave1: valor1
+clave2: 33
+clave3: true
+---
+{ clave1: valor1, clave2: 33, clave3: true } # Por compatibilidad con JSON
+---
+{} # Mapa vacío
+---
+clave1: valor1
+clave2: 33
+clave3: true
+---
+clave2: 33
+clave1: valor1
+clave3: true
+
+# Esos 2 mapas de arriba son IDENTICOS... es lo mismo. Los mapas son DESORDENADOS... No se les aplica orden.

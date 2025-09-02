@@ -1,0 +1,16 @@
+# ConfigMaps y Secrets son objetos que gestionan los Administradores de Sistemas (Operaciones)
+# Pod es un objeto que define desarrollo... que es quién conoce los intrigulis de la app...
+# Lo que necesita, las versiones de los programas... las configuraciones que deben tener.
+
+# La idea además es que desarrollo monta un único fichero definiendo el pod.
+# Sistemas puede crear después, varios juegos de configmaps y secrets... para los distintos despliegues (entornos)
+
+kind:           ConfigMap
+apiVersion:     v1
+
+metadata:
+    name:       datos-bbdd
+
+data:
+    nombre-bbdd:   miapp
+    usuario:       usuario

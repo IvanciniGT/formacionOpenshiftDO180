@@ -1,0 +1,21 @@
+kind:           Namespace
+apiVersion:     v1
+metadata:
+    name:       desarrollo
+
+# kubectl apply -f 0-namespace.yaml
+# oc      apply -f 0-namespace.yaml
+# También podríamos cargarlo desde las interfaces gráficas.
+
+# En el caso de los namespaces, las gui y los clientes de linea de
+# comandos me permiten crear el objeto manualmente... sin necesidad de un yaml
+# No para todo objeto podemos hacer esto... y que podamos hacerlo no significa que queramos hacerlo.
+# $ oc create namespace desarrollo
+# $ kubectl create namespace desarrollo
+
+# Pero repito, que pueda hacerlo no significa que quiera hacerlo. 
+# Lo que haga de esta forma no queda AUTOMATIZADO!, NI CONTROLADO.
+
+# Lo que querré es tener un fichero YAML, subirlo a un repositorio y 
+# que a partir de ahí se pueda aplicar ese fichero de forma controlada.
+# Esto es replicable

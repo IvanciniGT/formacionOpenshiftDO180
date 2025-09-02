@@ -1,0 +1,84 @@
+
+
+kind:           Pod
+apiVersion:     v1
+
+metadata:
+    name:       minginx
+    # Los pods van asociados a un namespace. Eso es algo que puedo definir en este fichero:
+    # namespace:  desarrollo
+    # Pero de nuevo, que pueda hacer algo, no significa que quiera hacerlo.
+    # Es muy raro que en estos ficheros defina el namespace en el que quiero meter el pod.
+    # Posiblemente ese pod le quiero en distintos namespaces: desarrollo, produccion
+    # Lo habitual es pasar esta información junto con el fichero al cliente:
+    # $ kubectl apply -f 1-pod.yaml -n desarrollo
+    # $ kubectl apply -f 1-pod.yaml -n produccion
+
+spec: # Esta palabra `spec` la encontramos en el 80% de los tipos de objeto de kubernetes
+      # Y aquí dentro detallamos cómo queremos que sea ese objeto
+      # Lo que viene aquí dentro ya depende totalmente del tipo de objeto que este configurando
+      containers:
+        -   name:                   contenedor-1
+            image:                  nginx:latest
+            imagePullPolicy:        Always # IfNotPresent Never
+                                    # Muchos registries públicos (como por ejemplo Docker HUB) 
+                                    # tienen limitaciones IMPORTANTES en cuanto al número de descargas permitidas por hora.
+                                    # Le indica a kubernetes cuándo debe descargarse esa imagen
+            env:
+                - name:             miVariable1
+                  value:            miValor
+                - name:             miVariable2
+                  value:            miValor
+            ports: # No es lo mismo que en docker... ni parecido... AQUÍ ES SOLO DOCUMENTACIÓN
+                - containerPort:    80
+                  protocol:         TCP
+                  name:             puerto-de-http
+            resources:
+                requests:
+                    memory:         128Mi
+                    cpu:            250m
+                limits:
+                    memory:         128Mi
+                    cpu:            2
+        -   name:                   contenedor-2
+            image:                  mariadb:latest
+            imagePullPolicy:        Always # IfNotPresent Never
+                                    # Muchos registries públicos (como por ejemplo Docker HUB) 
+                                    # tienen limitaciones IMPORTANTES en cuanto al número de descargas permitidas por hora.
+                                    # Le indica a kubernetes cuándo debe descargarse esa imagen
+            env:
+                - name:             MARIADB_ROOT_PASSWORD
+                  #value:            supersecreta
+                  valueFrom:
+                    secretKeyRef:
+                      name:         datos-secretos-bbdd
+                      key:          password-root
+
+                - name:             MARIADB_DATABASE
+                  valueFrom:
+                        configMapKeyRef:
+                        name:         datos-bbdd
+                        key:          nombre-bbdd
+
+                - name:             MARIADB_USER
+                  valueFrom:
+                    configMapKeyRef:
+                      name:         datos-bbdd
+                      key:          usuario
+
+                - name:             MARIADB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name:         datos-secretos-bbdd
+                      key:          password-contraseña
+            ports: # No es lo mismo que en docker... ni parecido... AQUÍ ES SOLO DOCUMENTACIÓN
+                - containerPort:    3306
+                  protocol:         TCP
+                  name:             puerto-de-bbdd
+            resources:
+                requests:
+                    memory:         1Mi
+                    cpu:            1
+                limits:
+                    memory:         1Mi
+                    cpu:            2                    
