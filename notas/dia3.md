@@ -204,3 +204,48 @@ tolerations:
 ```
 
 El modo NoExecute... es mucho más drástico. Quita (desagua) los pods que no toleren el tinte... aunque ya estén allí corriendo. El caso.  duso de esto es más restrictivo. Se usa para dejar un nodo seco (sin pods) antes de hacerle operaciones de mnto.
+
+
+---
+
+# Cliente de kubernetes: kubectl
+
+$ kubectl <verbo> <tipo de objeto> <args>
+
+## tipos de objetos:
+                            Alias
+- namespace(s)              ns
+- pod(s)
+- node(s)
+- deployment(s)
+- secret(s)
+- configmap(s)
+- service(s)                svc
+- ingress
+- persistentvolumeclaim     pvc
+- persistentvolume          pv
+- ...
+
+## Verbo, dependiendo del tipo de objeto...
+Algunos son comunes y los puedo ejecutar sobre cualquier tipo de objeto:
+
+- delete   
+  $ kubectl delete pod <nombre> -n <nombre-namespace>
+- describe
+  $ kubectl describe pod <nombre> -n <nombre-namespace>
+- get (lista todos los que hay)
+  $ kubectl get pod -n <nombre-namespace>
+  $ kubectl get svc -n <nombre-namespace> 
+
+## args:
+ -n --namespace <nombre>
+ --all-namespaces
+
+
+
+$ kubectl apply  -f <archivo.yaml> -n NAMESPACE
+    Crear o Modificar(si es posible) dentro del namespace los recursos que se definen en el fichero
+$ kubectl create -f <archivo.yaml> -n NAMESPACE
+    Crear en el cluster, dentro del namespace los recursos que se definen en el fichero
+$ kubectl delete -f <archivo.yaml> -n NAMESPACE
+    Borra del cluster todos los recursos que se definen en el fichero
