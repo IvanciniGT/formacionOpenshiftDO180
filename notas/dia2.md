@@ -362,7 +362,7 @@ Y kubernetes nos ofrece 3 objetos para configurar plantillas de pods:
             http://192.168.100.103:30090
             http://192.168.100.201:30090
             http://192.168.100.202:30090
-      Balanceador de carga                                                                          
+      Balanceador de carga
           | (externo al cluster)           miapp.miempresa.com -> 192.168.100.10
           |                                    |
       192.168.100.10                           |                       MenchuPC (http://miapp.miempresa.com)
@@ -376,33 +376,38 @@ Y kubernetes nos ofrece 3 objetos para configurar plantillas de pods:
  ||                         NetFilter
  ||                             Cuando alguien quiera ir a 10.10.2.101:3307 -> 10.10.1.101:3306
  ||                             Cuando alguien quiera ir a 10.10.2.102:8080 -> 10.10.1.102:80, 10.10.1.103:80
- ||                             Cuando alguien acceda al 192.168.100.101:30090 -> 10.10.2.102:8080
+  |                             Cuando alguien quiera ir a 10.10.2.103:8080 -> 10.10.1.104:80
+ ||                             Cuando alguien acceda al 192.168.100.101:30090 -> 10.10.2.103:8080
  ||                      ContainerD
  ||                      Kubelet
  ||                      KubeProxy
  ||                      CoreDNS
  ||                         bbdd-service -> 10.10.2.101
  ||                         web-service  -> 10.10.2.102 
+ ||                         ingress-controller-service  -> 10.10.2.103
  ||
  +--192.168.100.102--Nodo2 (Maestro)
  ||                      Linux
  ||                         NetFilter
  ||                             Cuando alguien quiera ir a 10.10.2.101:3307 -> 10.10.1.101:3306
  ||                             Cuando alguien quiera ir a 10.10.2.102:8080 -> 10.10.1.102:80, 10.10.1.103:80
- ||                             Cuando alguien acceda al 192.168.100.102:30090 -> 10.10.2.102:8080
+  |                             Cuando alguien quiera ir a 10.10.2.103:8080 -> 10.10.1.104:80
+ ||                             Cuando alguien acceda al 192.168.100.102:30090 -> 10.10.2.103:8080
  ||                      ContainerD
  ||                      Kubelet
  ||                      KubeProxy
  ||                      CoreDNS
  ||                        bbdd-service -> 10.10.2.101
  ||                        web-service  -> 10.10.2.102 
+ ||                        ingress-controller-service  -> 10.10.2.103
  ||
  +--192.168.100.103--Nodo3 (Maestro)
  ||                      Linux
  ||                         NetFilter
  ||                             Cuando alguien quiera ir a 10.10.2.101:3307 -> 10.10.1.101:3306
  ||                             Cuando alguien quiera ir a 10.10.2.102:8080 -> 10.10.1.102:80, 10.10.1.103:80
- ||                             Cuando alguien acceda al 192.168.100.103:30090 -> 10.10.2.102:8080
+  |                             Cuando alguien quiera ir a 10.10.2.103:8080 -> 10.10.1.104:80
+ ||                             Cuando alguien acceda al 192.168.100.103:30090 -> 10.10.2.103:8080
  ||                      ContainerD
  ||                      Kubelet
  ||                      KubeProxy
@@ -412,7 +417,8 @@ Y kubernetes nos ofrece 3 objetos para configurar plantillas de pods:
  ||                         NetFilter
  ||                             Cuando alguien quiera ir a 10.10.2.101:3307 -> 10.10.1.101:3306
  ||                             Cuando alguien quiera ir a 10.10.2.102:8080 -> 10.10.1.102:80, 10.10.1.103:80
- ||                             Cuando alguien acceda al 192.168.100.201:30090 -> 10.10.2.102:8080
+  |                             Cuando alguien quiera ir a 10.10.2.103:8080 -> 10.10.1.104:80
+ ||                             Cuando alguien acceda al 192.168.100.201:30090 -> 10.10.2.103:8080
  ||                      ContainerD
  ||                      Kubelet
  ||                      KubeProxy
@@ -430,7 +436,8 @@ Y kubernetes nos ofrece 3 objetos para configurar plantillas de pods:
   |                         NetFilter
   |                             Cuando alguien quiera ir a 10.10.2.101:3307 -> 10.10.1.101:3306
   |                             Cuando alguien quiera ir a 10.10.2.102:8080 -> 10.10.1.102:80, 10.10.1.103:80
-  |                             Cuando alguien acceda al 192.168.100.202:30090 -> 10.10.2.102:8080
+  |                             Cuando alguien quiera ir a 10.10.2.103:8080 -> 10.10.1.104:80
+  |                             Cuando alguien acceda al 192.168.100.202:30090 -> 10.10.2.103:8080
   |                      ContainerD
   |                      Kubelet
   |                      KubeProxy (Va configurando los netfilter de cada máquina)
@@ -440,6 +447,11 @@ Y kubernetes nos ofrece 3 objetos para configurar plantillas de pods:
   |                                          En el fichero de configuración del wordpress, 
   |                                          tengo que poner la URL de la BBDD a la que debe conectar:
   |                                               mysql://bbdd-service:3307
+  |--------------------------PodProxyReverso: 10.10.1.104:80
+  |                              Contenedor: IngressController - Nginx
+  |                                             Necesitamos una regla:
+  |                                                 Si llega una petición dirigida a : miapp.miempresa.com  \
+  |                                                 La rediriges a web-service:8080                         / INGRESS
   |
   Red virtual del cluster de kubernetes: 10.10.0.0/16
 
@@ -457,10 +469,12 @@ Montar un Service:
  - NodePort:    ClusterIP + Puerto nat por encima del 30000 que se configura en cada host
  - LoadBalancer:  NodePort + Gestión automatizada de un balanceador externo de carga COMPATIBLE CON KUBERNETES.
 
- - Route: Es una gestión automatizada de un DNS Externo compatible con Openshift.
+- Ingress: Regla de configuración para un proxy reverso (Ingress Controller)
+
+- Route: Es una gestión automatizada de un DNS Externo compatible con Openshift.
           En kubernetes ESTANDAR no hay nada así... Aunque hoy en día hay un proyecto OFICIAL de Kubernetes que nos permite hacer lo mismo 
 Si contrato un cluster de Kubernetes (Openshift) a un cloud, el cloud me da siempre (€€€) un balanceador de carga compatible con Kubernetes.
-Pero, si monto yo mi propio cluster (on prem) necetio montar yo un balanceador de carga compatible con Kubernetes: MetalLB.
+Pero, si monto yo mi propio cluster (on prem) necesito montar yo un balanceador de carga compatible con Kubernetes: MetalLB.
 
 
    En un cluster tipo de Kubernetes u Openshift... cuántos (% o valor absoluto) servicios tendré de cada tipo

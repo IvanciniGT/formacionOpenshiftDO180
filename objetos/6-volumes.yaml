@@ -1,0 +1,293 @@
+
+kind:           ConfigMap
+apiVersion:     v1
+
+metadata:
+    name:       configuracion-nginx
+
+data:
+    #nombre-bbdd:   miapp
+    #usuario:       usuario
+    nginx.conf: |
+      user  www www;
+      worker_processes  2;
+      pid /var/run/nginx.pid;
+      #                          [ debug | info | notice | warn | error | crit ]
+      error_log  /var/log/nginx.error_log  info;
+      events {
+          worker_connections   2000;
+          # use [ kqueue | epoll | /dev/poll | select | poll ];
+          use kqueue;
+      }
+      http {
+          include       conf/mime.types;
+          default_type  application/octet-stream;
+          log_format main      '$remote_addr - $remote_user [$time_local] '
+                              '"$request" $status $bytes_sent '
+                              '"$http_referer" "$http_user_agent" '
+                              '"$gzip_ratio"';
+
+          log_format download  '$remote_addr - $remote_user [$time_local] '
+                              '"$request" $status $bytes_sent '
+                              '"$http_referer" "$http_user_agent" '
+                              '"$http_range" "$sent_http_content_range"';
+
+          client_header_timeout  3m;
+          client_body_timeout    3m;
+          send_timeout           3m;
+
+          client_header_buffer_size    1k;
+          large_client_header_buffers  4 4k;
+
+          gzip on;
+          gzip_min_length  1100;
+          gzip_buffers     4 8k;
+          gzip_types       text/plain;
+
+          output_buffers   1 32k;
+          postpone_output  1460;
+
+          sendfile         on;
+          tcp_nopush       on;
+          tcp_nodelay      on;
+          send_lowat       12000;
+
+          keepalive_timeout  75 20;
+
+          #lingering_time     30;
+          #lingering_timeout  10;
+          #reset_timedout_connection  on;
+
+          server {
+              listen        one.example.com;
+              server_name   one.example.com  www.one.example.com;
+              access_log   /var/log/nginx.access_log  main;
+
+              location / {
+                  proxy_pass         http://127.0.0.1/;
+                  proxy_redirect     off;
+
+                  proxy_set_header   Host             $host;
+                  proxy_set_header   X-Real-IP        $remote_addr;
+                  #proxy_set_header  X-Forwarded-For  $proxy_add_x_forwarded_for;
+
+                  client_max_body_size       10m;
+                  client_body_buffer_size    128k;
+
+                  client_body_temp_path      /var/nginx/client_body_temp;
+
+                  proxy_connect_timeout      70;
+                  proxy_send_timeout         90;
+                  proxy_read_timeout         90;
+                  proxy_send_lowat           12000;
+
+                  proxy_buffer_size          4k;
+                  proxy_buffers              4 32k;
+                  proxy_busy_buffers_size    64k;
+                  proxy_temp_file_write_size 64k;
+
+                  proxy_temp_path            /var/nginx/proxy_temp;
+
+                  charset  koi8-r;
+              }
+
+              error_page  404  /404.html;
+
+              location = /404.html {
+                  root  /spool/www;
+              }
+
+              location /old_stuff/ {
+                  rewrite   ^/old_stuff/(.*)$  /new_stuff/$1  permanent;
+              }
+
+              location /download/ {
+
+                  valid_referers  none  blocked  server_names  *.example.com;
+
+                  if ($invalid_referer) {
+                      #rewrite   ^/   http://www.example.com/;
+                      return   403;
+                  }
+
+                  #rewrite_log  on;
+
+                  # rewrite /download/*/mp3/*.any_ext to /download/*/mp3/*.mp3
+                  rewrite ^/(download/.*)/mp3/(.*)\..*$
+                          /$1/mp3/$2.mp3                   break;
+
+                  root         /spool/www;
+                  #autoindex    on;
+                  access_log   /var/log/nginx-download.access_log  download;
+              }
+
+              location ~* \.(jpg|jpeg|gif)$ {
+                  root         /spool/www;
+                  access_log   off;
+                  expires      30d;
+              }
+          }
+      }
+
+---
+
+
+kind:           PersistentVolume # Declaración de volumen persistente que debe existir en algún sitio, y que hace SISTEMAS / OPERACIONES
+apiVersion:     v1               # Lo que hacemos aquí es REGISTRAR, dar de alta en kubernetes ese volumen
+                                 # Informar a Kubernetes de ese volumen que ya existe y hemos creado PREVIAMENTE en algún backend
+
+metadata:
+    name:       volumen-bbdd
+spec:
+
+    # Detallamos como es ese volumen
+    capacity:
+        storage:        10Gi                       # Cuanto espacio tiene ese volumen
+    storageClassName:   rapidito-redundante        # Tipo de almacenamiento
+    accessModes:                                   # Tiene que ver con el uso que se va a dar al volumen
+                      - ReadWriteOnce
+    # Información del volumen REAL que existe en el backend
+    nfs:
+        server:                     192.168.0.215   # IP del servidor nfs
+        path:                       /exportada      # Carpeta que exporta el servidor nfs
+      
+      #iscsi:
+        # La dirección IP o DNS del servidor iSCSI y el puerto
+        #targetPortal: 10.0.2.15:3260
+        # El IQN (iSCSI Qualified Name) del target
+        #iqn: iqn.2017-01.com.example:kube-target
+        # El LUN (Logical Unit Number) a utilizar
+        #lun: 0
+        # El tipo de sistema de archivos que ya existe en el LUN
+        #fsType: 'ext4'
+        # Solo lectura (false permite lectura/escritura)
+        #readOnly: false
+      
+      #awsElasticBlockStore:
+        #volumeID: "vol-0aade1788660984d0"
+        #fsType: ext4
+---
+
+
+kind:           PersistentVolumeClaim # Petición de volumen persistente, que hace NEGOCIO o DESARROLLO
+apiVersion:     v1
+
+metadata:
+    name:       peticion-volumen-bbdd
+spec:
+
+    resources:
+        requests:
+            storage:            1Gi                   # Cuanto espacio necesito
+    storageClassName:           rapidito-redundante   # Tipo de almacenamiento
+    accessModes: # Tiene que ver con el uso que se va a dar al volumen
+        #- ReadWriteOncePod   # Este volumen solo lo voy a usar en un pod simultaneamente
+        - ReadWriteOnce      # Este volumen lo quiero tener pinchado a nivel del host, y poder usarlo desde cualquier pod de ese host
+        #- ReadOnlyMany       # Este volumen es de solo lectura y quiero que varios pods lo puedan montar
+        #- ReadWriteMany      # Este volumen lo quiero montar en varios pods a la vez, y quiero poder escribir en él desde todos
+---
+kind:           Pod
+apiVersion:     v1
+
+metadata:
+    name:       minginx
+
+spec:
+  #nodeName: <nombre-del-nodo>
+  #nodeSelector:
+  #  gpu: potente
+
+
+  volumes:
+    - name:                         volumen-para-compartir-informacion
+      emptyDir:                     {}
+                                    # medium: "Memory"
+      # Este tipo de volumen se crea a nivel LOCAL (HOST)
+      # Por defecto, tiene persistencia en disco, aunque se puede cambiar a RAM (medium: "Memory")
+      # Ese volumen por defecto se crea sin datos... y es eliminado si se elimina el pod (NO HAY PERSISTENCIA)
+    - name:                         volumen-configuracion-nginx
+      configMap:
+        name:                       configuracion-nginx
+      # En este caso, lo que kubernetes hará será dentro de la carpeta donde se monte el volumen a nivel del contenedor
+      # crear tantos archivos como claves se hayan definido en el ConfigMap... 
+      # El nombre de cada archivo será el mismo que la clave del ConfigMap
+      # El contenido de cada archivo será el valor de la clave correspondiente en el ConfigMap.
+      # En nuestro caso, al montar este volumen, dentro de /etc/nginx/conf.d
+      # Kubernetes creará 2 archivos dentro de esa carpeta: nombre-bbdd y usuario
+      # El contenido de esos archivos será respectivamente "miapp" y "usuario"
+      # Igual que los configMap, tenemos los Secret
+      # El uso es el mismo... pero los secrets (como volúmenes) se reservan para:
+      # - Inyectar certificados SSL
+      # - Inyectar claves privadas
+      # - Ficheros de licencia
+      # Al hacerlo kubernetes garantiza:
+      # - Dentro de la bbdd de kubernetes (etcd) se guardan encriptados
+      # - El fichero no se persiste a disco en ningún momento... Esta en RAM
+    - name:                          inyectado-desde-host
+      hostPath:
+        path: /proc
+        type: Directory
+      # Esto lo usamos habitualmente cuando queremos que el contenedor tenga acceso a datos del host
+      # Para monitorización
+      # O lo que quiero es montar un DockerInDocker... es decir, que desde un contenedor pueda crear nuevos contenedores en el host
+      # Para ello, tengo que inyectar en el contenedor 2 cosas:
+      # - El cliente de Docker: /opt/docker
+      # - El socket de Docker: /var/run/docker.sock
+      # Mucho cuidado. NO SIRVEN PARA PERSISTENCIA !
+      # Los datos que el contenedor guarde en esa carpeta (caso que sea una carpeta / archivo), SI SE GUARDAN PERSISTENTEMENTE en el host
+      # Incluso tras la eliminación del contenedor... pero... No tengo garantía que si Kubernetes 
+      # Mueve el pod de un nodo a otro... en ese otro nodo estén los datos.
+    - name:                         volumen-persistente-bbdd
+      persistentVolumeClaim:
+        claimName:                  peticion-volumen-bbdd
+      # ESTO DE AQUI ABAJO FUNCIONARIA... PERO NO SE HACE NUNCA JAMAS!
+      #nfs:
+      #  server:                     192.168.0.215   # IP del servidor nfs
+      #  path:                       /exportada      # Carpeta que exporta el servidor nfs
+      
+      #iscsi:
+        # La dirección IP o DNS del servidor iSCSI y el puerto
+        #targetPortal: 10.0.2.15:3260
+        # El IQN (iSCSI Qualified Name) del target
+        #iqn: iqn.2017-01.com.example:kube-target
+        # El LUN (Logical Unit Number) a utilizar
+        #lun: 0
+        # El tipo de sistema de archivos que ya existe en el LUN
+        #fsType: 'ext4'
+        # Solo lectura (false permite lectura/escritura)
+        #readOnly: false
+      
+      #awsElasticBlockStore:
+        #volumeID: "<volume id>"
+        #fsType: ext4
+
+  containers:
+
+        -   name:                   contenedor-1
+            image:                  nginx:latest
+            imagePullPolicy:        Always
+            volumeMounts:
+              - name:               volumen-para-compartir-informacion
+                mountPath:          /compartida
+              - name:               volumen-configuracion-nginx
+                mountPath:          /etc/nginx/conf.d
+
+        -   name:                   contenedor-2
+            image:                  mariadb:latest
+            imagePullPolicy:        Always
+            env:
+                - name:             MARIADB_ROOT_PASSWORD
+                  value:            supersecreta
+                - name:             MARIADB_DATABASE
+                  value:            miapp
+                - name:             MARIADB_USER
+                  value:            usuario
+                - name:             MARIADB_PASSWORD
+                  value:            supersecreta
+            volumeMounts:
+              - name:               volumen-para-compartir-informacion
+                mountPath:          /otra-ruta
+              - name:               inyectado-desde-host
+                mountPath:          /procesos
+              - name:               volumen-persistente-bbdd
+                mountPath:          /var/lib/mysql
