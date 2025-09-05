@@ -20,6 +20,7 @@ spec: # Esta palabra `spec` la encontramos en el 80% de los tipos de objeto de k
       containers:
         -   name:                   contenedor-1
             image:                  nginx:latest
+            serviceAccountName:     mi-cuenta-de-servicio
             imagePullPolicy:        Always # IfNotPresent Never
                                     # Muchos registries públicos (como por ejemplo Docker HUB) 
                                     # tienen limitaciones IMPORTANTES en cuanto al número de descargas permitidas por hora.

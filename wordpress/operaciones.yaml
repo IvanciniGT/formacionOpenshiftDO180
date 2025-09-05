@@ -45,6 +45,7 @@ spec:
 
 ---
 kind:             ConfigMap
+apiVersion:       v1
 metadata:
   name:           wordpress-configmap
 data:
@@ -52,9 +53,14 @@ data:
 ---
 # Secret
 kind:             Secret
+apiVersion:       v1
 metadata:
   name:           wordpress-secret
 type:             Opaque
 data:
   db-user:        dXNlcm5hbWU= # username
   db-password:    cGFzc3dvcmQ= # password
+
+
+  # El equivalente para crear el secret desde kubecctl:
+  # $ kubectl create secret generic wordpress-secret --from-literal=db-user=username --from-literal=db-password=password
