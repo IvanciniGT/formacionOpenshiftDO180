@@ -1,0 +1,181 @@
+# Configmap
+
+kind:             ConfigMap
+apiVersion:       v1
+metadata:
+  name:           wordpress-configmap
+data:
+  db-name:        wordpress
+---
+# Secret
+kind:             Secret
+apiVersion:       v1
+metadata:
+  name:           wordpress-secret
+type:             Opaque
+data:
+  db-user:        dXNlcm5hbWU= # username
+  db-password:    cGFzc3dvcmQ= # password
+---
+# PVC Wordpress
+
+kind:             PersistentVolumeClaim
+apiVersion:       v1
+metadata:
+  name:           wordpress-pvc
+spec:
+  accessModes:
+                - ReadWriteMany
+  resources:
+    requests:
+      storage:    1Gi
+  storageClassName: rapidito-redundante
+
+---
+
+# Service MariaDB
+kind:               Service
+apiVersion:         v1
+metadata:
+  name:             mariadb
+spec:
+  type:             ClusterIP
+  ports:
+  - port:           3306 # IP De balanceo
+    targetPort:     3306 # Puerto del contenedor
+  selector:
+    app:            mariadb # *1
+
+---
+# Service Wordpress
+
+kind:               Service
+apiVersion:         v1
+metadata:
+  name:             wordpress
+spec:
+  type:             NodePort
+  ports:
+  - port:           80
+    targetPort:     80
+    nodePort:       30180
+  selector:
+    app:            wordpress
+
+---
+# Ingress
+---
+
+# Statefulset MariaDB
+
+kind:                     StatefulSet
+apiVersion:               apps/v1
+metadata:
+  name:                   mariadb
+spec:
+  serviceName:            mariadb # Entradas de DNS para cada replica INDEPENDIENTES
+                                  # Al cargarlo, me da una entrada en dns llamada: mariadb-0.mariadb
+                                  # Que me permite apuntar a la primera réplica.. En este caso, solo tengo 1...
+                                  # Si tuviera varias, me daría también: mariadb-1.mariadb, mariadb-2.mariadb, etc.
+  replicas:               1
+  selector:
+    matchLabels:
+      app:                mariadb
+  template:
+    metadata:
+      labels:
+        app:              mariadb
+    spec:
+      containers:
+      - name:               mariadb
+        image:              mariadb:12.0-ubi10
+        imagePullPolicy:    IfNotPresent
+        ports:
+        - containerPort:    3306
+        env:
+        - name:             MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name:         wordpress-secret
+              key:          db-password
+        - name:             MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name:         wordpress-configmap
+              key:          db-name
+        - name:             MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name:         wordpress-secret
+              key:          db-user
+        - name:             MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name:         wordpress-secret
+              key:          db-password
+        volumeMounts:
+        - name:               mariadb-persistent-storage
+          mountPath:          /var/lib/mysql
+      #volumes:
+      #- name:                 mariadb-persistent-storage
+      #  persistentVolumeClaim:
+      #    claimName:          mariadb-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name:                 mariadb-persistent-storage
+    spec:
+      accessModes:
+                          - ReadWriteOnce
+      resources:
+        requests:
+          storage:          1Gi
+      storageClassName:     rapidito-redundante
+---
+
+# Deployment Wordpress + Apache
+
+kind:               Deployment
+apiVersion:         apps/v1
+metadata:
+  name:             wordpress
+spec:
+  replicas:         2
+  selector:
+    matchLabels:
+      app:          wordpress
+  template:
+    metadata:
+      labels:
+        app:                  wordpress
+    spec:
+      containers:
+      - name:                 wordpress
+        image:                wordpress:6.8-php8.4-apache
+        imagePullPolicy:      IfNotPresent
+        ports:                # Documentación
+        - containerPort:      80
+        env:
+        - name:               WORDPRESS_DB_HOST
+          value:              mariadb:3306
+        - name:               WORDPRESS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name:           wordpress-secret
+              key:            db-user
+        - name:               WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name:           wordpress-secret
+              key:            db-password
+        - name:               WORDPRESS_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name:           wordpress-configmap
+              key:            db-name
+        volumeMounts:
+        - name:               wordpress-persistent-storage
+          mountPath:          /var/www/html
+      volumes:
+      - name:                 wordpress-persistent-storage
+        persistentVolumeClaim:
+          claimName:          wordpress-pvc

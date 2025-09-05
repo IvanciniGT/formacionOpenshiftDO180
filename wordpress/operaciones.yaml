@@ -1,0 +1,60 @@
+# Namespace para wordpress
+
+kind:         Namespace
+apiVersion:   v1
+metadata:
+  name:       wordpress
+
+---
+# ServiceAccount
+---
+# ResourceQuota / LimitRange
+
+---
+# PV wordpress
+kind:             PersistentVolume
+apiVersion:       v1
+metadata:
+  name:           wordpress-pv
+spec:
+  capacity:
+    storage:      1Gi
+  accessModes:
+                - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: rapidito-redundante
+  hostPath:         # En un entorno real, deberíamos siempre usar un almacenamiento externo al cluster
+    path:           /home/ubuntu/environment/data/ivan/wordpress
+
+---
+# PV mariadb
+
+kind:             PersistentVolume
+apiVersion:       v1
+metadata:
+  name:           mariadb-pv
+spec:
+  capacity:
+    storage:      1Gi
+  accessModes:
+                - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: rapidito-redundante
+  hostPath:         # En un entorno real, deberíamos siempre usar un almacenamiento externo al cluster
+    path:           /home/ubuntu/environment/data/ivan/mariadb
+
+---
+kind:             ConfigMap
+metadata:
+  name:           wordpress-configmap
+data:
+  db-name:        wordpress
+---
+# Secret
+kind:             Secret
+metadata:
+  name:           wordpress-secret
+type:             Opaque
+data:
+  db-user:        dXNlcm5hbWU= # username
+  db-password:    cGFzc3dvcmQ= # password
