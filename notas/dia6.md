@@ -1,5 +1,5 @@
 
-# Contenedor
+# Contenedores
 
 Entorno aislado dentro de un SO (principalmente con Kernel Linux) donde ejecutar procesos... los que necesite.
 El proceso con el que arranca el contenedor, su proceso principal, viene definido en la imagen del contenedor... aunque yo puedo sobreescribirlo al crear el contenedor desde la imagen.
@@ -448,3 +448,54 @@ helm pull --untar  REPO/CHART
 helm install  NOMBRE_DESPLIEGUE   REPO/CHART  -n NAMESPACE  --create-namespace   -f RUTA/values.yaml
 
 helm uninstall NOMBRE_DESPLIEGUE  -n NAMESPACE
+
+
+> Tenemos un provisionador NFS (NFS Subdir External Provisioner)
+
+Vamos ahora a por el MariaDB Operator. Y vamos a crear un pvc que genere una pv con nuestro provisionador NFS.
+
+Podríamos hacer lo mismo por ejemplo al instalar Wordpress... el solicitar un pvc para que el wordpress tenga persistencia de datos, a través de nuestro provisionador NFS.
+
+MARIADB: Dónde guarda los datos? en un fichero... en un fichero asociado a la BBDD (tablespace) es donde guarda todos los datos de todas las tablas de toda esa BBDD.
+Como de grande será ese fichero? Enorme
+
+WORDPRESS: Dónde guarda los datos? Si subo una foto, o un pdf, o un css... lo que sea que suba a wordpress... ese archivo donde se guarda? En un directorio.
+  Pregunta: Todos los archivos que suba a wordpress, se guardan en un único archivo o cada uno en su archivo independiente? Cada uno en su archivo independiente.
+
+  Los archivos que subo a wordpress, tienen modificaciones? Me temo que no. 
+  Subo la version 1 de mi foto... y da lugar a un archivo
+  Ahora subo la version 2 de mi foto... eso edita el archivo version 1? No, crea un nuevo archivo.
+
+  css: Archivo de texto plano... Acceso secuencial
+  archivos de BBDD: Archivo binario... Acceso aleatorio
+
+
+Tipos de almacenamiento:
+- Orientado a archivos (NFS, CIFS, GlusterFS, CephFS)
+- Orientado a bloques (iSCSI, FibreChannel, AWS EBS, Azure Disk)
+- Orientado a objetos (S3, Azure Blob, Google Cloud Storage)
+
+KAFKA, ElasticSearch (logs)
+
+El almacenamiento es lo más caro con diferencia de un entorno de producción!
+
+HDD 3 tbs = 60€
+HDD 3Tbs  = 300€
+
+Cuántas copias hago de un dato en producción? 3 copias mínimo.
+Cuánto me cuesta tener 3 copias de 3Tbs? 900€
+Y ahora backups x3? 2700€
+
+---
+
+ingress controller:  Nginx <--> LoadBalancer (pending)
+                                NodePort > 30000
+
+                      DNS Externo <--- /etc/hosts
+                                       Windows: C:\Windows\System32\drivers\etc\hosts
+
+No tenemos loadbalancer externo... ni podemos montarlo. Metallb no es compatible con la red virtual de aws.
+
+
+--- 
+Montar un cluster más grande!
