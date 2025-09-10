@@ -41,6 +41,11 @@ spec: # Esta palabra `spec` la encontramos en el 80% de los tipos de objeto de k
                 limits:
                     memory:         128Mi
                     cpu:            2
+            securityContext:
+              privileged: true
+              runAsUser: 0
+
+
         -   name:                   contenedor-2
             image:                  mariadb:latest
             imagePullPolicy:        Always # IfNotPresent Never

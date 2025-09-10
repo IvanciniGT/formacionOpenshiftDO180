@@ -51,9 +51,14 @@ Kubernetes SOLO entiende de sus objetos. POD, SECRET...
 ---
 
 1. Ampliar el cluster √
-2. Instalar Ingress Controller (NGINX)
+2. Instalar Ingress Controller (NGINX) √ 
 3. ElasticSearch (Operador)        
+---> Empezáis vosotros... 10-15 minutos:
+     1 nodo de elasticsearch (solo 1)
+     Nada más
+     Almacenamiento efímero.
 
+    OPERADOR: elastic cloud operator for kubernetes
 
 ---
 
@@ -79,4 +84,44 @@ Y qué pasa si tengo mis nodos conectados a varias redes!
 - Red privada donde hay otras BBDD, servicios que necesitan los programas de mi cluster.
 
 
-NEXTCLOUD
+
+
+
+                                            Nombres que se asocian 
+                                            a un IngressController
+INGRESS                                     | INGRESS CLASSES |   INGRESS CONTROLLER
+--------------------------------------------+-----------------+---------------------------
+- Configuración básica PROXY REVERSO        | nginx-ivan --------> nginx-ingress-controller-ivan
+   host + path -> servicio:puerto           |                 |          proxy reverso: nginx (1 réplica o 14)
+- Certificados si quiero https              |                 |             su configuración: nginx.conf (cada una con el 
+                                            |                 |                                      fichero de configuración... el mismo todas)
+- Configuración avanzada del proxy reverso  |                 |          programa que MONITORIZA las reglas Ingress que se crean
+   - Redirecciones especiales               |                 |                 y si esa regla tiene el mismo IngressClass que éste,
+   - Tamaño del cuerpo máximo               |                 |                 toma los datos que vienen dentro del ingress
+   - Timeouts                               |                 |                 y los añade al fichero de configuración del proxy reverso
+   - Configuración de cabeceras             |                 |                    ---> nginx.conf
+- IngressClass (nginx-ivan)                 | nginx-menchu --------> envoy-ingress-controller-menchu
+
+---
+
+Este parámetro es requerido por ES... a nivel del kernel de Linux.
+Si esto no arranca.
+vm.max_map_count=262144 
+
+Puedo entrar en los nodos (si los tengo identificados) donde se vaya a desplegar el ES y meter eso... como root.
+Pero aún así, es pan para hoy y hambra pa' mañana..
+El día de mañana, que aumente el cluster...y le meta otras 25 máquinas... Me voy a acordar de actualizar este parámetro en todas las nuevas máquinas que meta en el cluster? BUFFF ! Lo dejaré por ahí apuntado... a ver si el próximo administrador que venga (que yo ya estaré en otra empresa que me paguen más €€€€) se acuerda de actualizarlo.
+
+Lo que me podría interesar es que esto se haga en automático!... en todas las máquinas del cluster.
+Cómo podría yo hacer que un programa se ejecute en TODAS las máquinas del cluster? Un DAEMONSET.
+Lo que hace un daemonset es abrir un pod en cada nodo del cluster (o en los nodos que yo le diga... por etiquetas).
+
+Pero ese pod, lo que ejecuta en última instancia es un CONTENEDOR.
+Dentro de ese contenedor es donde querría yo ejecutar el sysctl -w vm.max_map_count=262144 para que haga el cambio...
+1º Ese comando acaba? o se queda ahí corriendo como demonio?
+   Al acabar.. no me vale esta solución... Podemos trampearla:
+   - Lo puedo ejecutar como un initContainer (el comando)
+   - Y creo un contenedor que haga un sleep infinity...
+
+Pero... la cosa es peor... Puedo ejecutar ese comando desde un contenedor? A priori no.
+A no ser que tenga un contenedor privilegado (privileged: true), que permita hacer cambios en el kernel.
