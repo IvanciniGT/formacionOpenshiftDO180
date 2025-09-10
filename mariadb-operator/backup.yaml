@@ -1,0 +1,56 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  inheritMetadata:
+    annotations:
+      database.myorg.io: mariadb
+  podMetadata:
+    labels:
+      sidecar.istio.io/inject: "false"
+  serviceAccountName: backup
+  compression: gzip
+
+  schedule:
+    cron: "* * * * *"
+    suspend: false
+
+  storage:
+    persistentVolumeClaim:
+      storageClassName:       volumen-tipo-ivan
+      resources:
+        requests:
+          storage:            100Mi
+      accessModes:
+        - ReadWriteOnce
+  args:
+    - --single-transaction
+    - --all-databases
+    - --verbose
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  affinity:
+    antiAffinityEnabled: false
+    # podAntiAffinity:
+    #      preferredDuringSchedulingIgnoredDuringExecution:
+    #      - weight: 100
+  #          podAffinityTerm:
+  #            - labelSelector:
+  #                matchExpressions:
+  #                - key: app.kubernetes.io/name
+  #                  operator: In
+  #                  values:
+  #                  - mariadb
+  #                - key: k8s.mariadb.com/role
+  #                  operator: In
+  #                  values:
+  #                  - primary
+  #          topologyKey: "kubernetes.io/hostname"
