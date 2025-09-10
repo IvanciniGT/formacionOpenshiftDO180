@@ -1,0 +1,48 @@
+
+controller:
+  ingressClassResource:
+    # -- Name of the IngressClass
+    name: nginx-ivan
+    controllerValue: k8s.io/ingress-nginx-ivan
+  # -- For backwards compatibility with ingress.class annotation, use ingressClass.
+  # Algorithm is as follows, first ingressClassName is considered, if not present, controller looks for ingress.class annotation
+  ingressClass: nginx-ivan
+  # -- Labels to add to the pod container metadata
+
+  #resources:
+    ##  limits:
+    ##    cpu: 100m
+    ##    memory: 90Mi
+    ##requests:
+    ##  cpu: 100m
+    ##  memory: 90Mi
+
+  #replicaCount: 1
+  #autoscaling:
+  #  enabled: false
+  #  minReplicas: 1
+  #  maxReplicas: 11
+  #  targetCPUUtilizationPercentage: 50
+  #  targetMemoryUtilizationPercentage: 50
+  #  behavior: {}
+    # scaleDown:
+    #   stabilizationWindowSeconds: 300
+    #   policies:
+    #   - type: Pods
+    #     value: 1
+    #     periodSeconds: 180
+    # scaleUp:
+    #   stabilizationWindowSeconds: 300
+    #   policies:
+    #   - type: Pods
+    #     value: 2
+    #     periodSeconds: 60
+  service:
+    #loadBalancerIP: ""
+    #ports:
+    #nodePorts:
+      # -- Node port allocated for the external HTTP listener. If left empty, the service controller allocates one from the configured node port range.
+      #http: ""
+      # -- Node port allocated for the external HTTPS listener. If left empty, the service controller allocates one from the configured node port range.
+      #https: ""
+

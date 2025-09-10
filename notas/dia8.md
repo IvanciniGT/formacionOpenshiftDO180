@@ -29,3 +29,54 @@ Si pasa lo anterior... al crear una PVC nueva, va a apuntar a un nuevo volumen..
 
 Y digo que esto puede pasar.. y pasa a la mínima.
 En muchos casos, no soy yo quien crea la pvc, la crea por ejemplo HELM. Y como se me ocurra hacer un uninstall helm me borra la pvc. A veces, no me queda otra que hacer un uninstall helm y volver a instalarlo, ya que cambio cosas que no se permiten modificar en caliente... y es necesario hacer un borrado de un recurso.
+
+
+
+----
+
+
+Kubernetes SOLO entiende de sus objetos. POD, SECRET...
+        ^                            ^            ^
+      KUBECTL                     OPERADOR       CRDs
+        ^                           v   ^         ^
+      fichero                     - Monitoriza   Humano
+     manifiesto                     CRDs
+      ^     ^                     - Genera Objetos 
+   humano  HELM                     nuevos de Kubernetes 
+           ^  ^                     (es como si escribiera archivos de manifiesto)
+       CHART  values
+               ^
+              HUMANO
+
+---
+
+1. Ampliar el cluster √
+2. Instalar Ingress Controller (NGINX)
+3. ElasticSearch (Operador)        
+
+
+---
+
+# Ingress
+
+  - Regla de configuración para un proxy reverso
+
+# Ingress Controller
+
+  - UN proxy reverso del que puedo tener varias réplicas (IDENTICAS - HA+Escalabilidad)
+  - Programa que :
+      - Monitoriza los recursos Ingress que se crean en el cluster
+      - Configura el proxy reverso de turno con su sintaxis propia en base a las reglas que se definen en los recursos Ingress
+
+## Me puede interesar tener más de un ingress Controller instalado en el cluster?
+
+- En proxy reverso tendrá por delante un SERVICE (tipo LoadBalancer)... eso implica que habrá una IP en la red de FUERA DEL CLUSTER Que balanceará petición entre los nodos del cluster.
+
+Y qué pasa si tengo mis nodos conectados a varias redes!
+- Red pública (accesible por los usuarios)
+- Red privada (accesible solo por servidores que están dentro de la empresa y quieren acceder a servicios que están dentro del cluster)
+- Red privada de gestión (accesible solo por administradores de sistemas)
+- Red privada donde hay otras BBDD, servicios que necesitan los programas de mi cluster.
+
+
+NEXTCLOUD
