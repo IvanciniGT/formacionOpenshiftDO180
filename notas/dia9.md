@@ -332,7 +332,10 @@ Cluster:
 Nodo1.(84)   etiquetas: nodo1-NOMBRE
 Nodo2.(151)  etiquetas: nodo2-NOMBRE
 
-Namespace: prueba-NOMBRE
+kubectl label node NODO1  nodo-DAVID=nodo1
+kubectl label node NODO2  nodo-DAVID=nodo2
+
+Namespace: prueba-DAVID
 
 LimitRange:
     Defaults Container:
@@ -345,7 +348,7 @@ ResourceQuota:
 Deployment:
  replicas: 1
  pod: 
-    initContainer: sleep 30
+    initContainer: sleep 1 # sleep 30
             #memory: 5Mi
     nginx
         requests/limits
@@ -365,3 +368,151 @@ poddisruptionbudget:
  minAvailable: 1
 
 drain del nodo2
+
+---
+
+kind:             Namespace
+apiVersion:       v1
+metadata:
+    name:           prueba-ivan
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+    name: limits
+    namespace: prueba-ivan
+spec:
+    limits:
+      - default:                            # Default limit
+          memory: 20Mi
+        type: Container
+---
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: quota-ivan      
+  namespace: prueba-ivan
+
+spec:
+    hard:   
+        requests.memory:      40Mi
+        limits.memory:        40Mi
+
+---
+
+
+kubectl label node ip-172-31-44-84  nodo-ivan=nodo1
+kubectl label node ip-172-31-17-151 nodo-ivan=nodo2
+
+
+---
+
+kind:           HorizontalPodAutoscaler
+apiVersion:     autoscaling/v2
+
+metadata:
+  name:           hpa-ivan
+
+spec:
+    # Qué es lo que vamos a escalar... Suponiendo que tenemos un deployment con un nombre aaaaa
+    scaleTargetRef:
+        kind:       Deployment
+        name:       aaaaa
+        apiVersion: apps/v1
+    # Mínimo y máximo de réplicas admitidas
+    minReplicas: 2
+    maxReplicas: 4
+    # En base a qué métrica(s) se va a escalar
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu                 # memory
+          target:
+            type: Utilization # Trabaja en Porcentaje
+            averageUtilization: 40  # Tendría en cuenta todas las réplicas y si el uso medio de cpu supera el 50% escalaría
+      - type: Resource
+        resource:
+          name: memory                 # memory
+          target:
+            # A veces queremos trabajar ocn valores absolutos
+            type: AverageValue # Trabaja en valores absolutos
+            averageValue: 5Mi 
+---
+
+
+
+
+> Escenario 1... querría escalar?
+
+Pod1
+    60% + 40% -> 100% ---> OFFLINE!
+Pod2
+    40% OFFLINE
+
+La escalabilidad sirve para Más capacidad de trabajo... pero debe aguantar/ofrecer la HA.
+
+
+---
+
+kind:                 Deployment
+apiVersion:           apps/v1
+metadata:
+    name:             nginx
+
+spec:
+    replicas:         1
+    selector:
+        matchLabels:
+            app:      nginx
+    template:
+        metadata:
+            labels:
+                app:  nginx
+        spec:
+            affinity:
+                nodeAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - weight: 1
+                      preference:
+                        matchExpressions:
+                          - key: nodo-ivan
+                            operator: In
+                            values:
+                              - nodo2
+            initContainers:
+              - name: init-sleep
+                image: busybox
+                command: ['sh', '-c', 'sleep 1']
+            containers:
+              - name: nginx
+                image: nginx
+                resources:
+                    requests:
+                        memory: 35Mi
+                    limits:
+                        memory: 35Mi
+
+---
+
+kind:                 PodDisruptionBudget
+apiVersion:           policy/v1
+metadata:
+    name:             pdb-ivan
+
+spec:
+    minAvailable: 1
+    # maxUnavailable: 1
+    selector:
+        matchLabels:
+            app: nginx
+---
+
+Todo el tema de podDisruptionBudget tiene sentido cuando tengo más de una réplica.
+Si solo tengo una replica:
+    minAvailable: 0 <---- Igual que no poner nada.. que no definir pdb.
+    minAvailable: 1 <---- Bloqueante... evita hacer drains
+
+Hay 2 formas de sacar los pods de un nodo:
+- Drain (administrador del cluster) <--- Este es el que tiene en cuenta los pdbs
+- Taint :NoExecute 
