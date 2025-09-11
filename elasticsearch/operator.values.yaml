@@ -1,0 +1,15 @@
+installCRDs: false
+
+managedNamespaces: 
+    - elastic-system-ivan
+
+createClusterScopedResources: false
+
+webhook:
+    enabled: false
+
+config:
+    validateStorageClass: false
+
+
+# helm install elastic-operator-ivan repo-elastic/eck-operator -n elastic-system-ivan --create-namespace -f values-eck-operator.yaml

@@ -1,0 +1,64 @@
+#An example Ingress that makes use of the controller:
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: example
+    annotations: 
+       # DEPRECATED en favor de (1)
+       # kubernetes.io/ingress.class: nginx-ivan
+       # Anotaciones adicionales para configurar el nginx
+        nginx.ingress.kubernetes.io/proxy-body-size: 200G
+        nginx.ingress.kubernetes.io/server-snippet: |-
+          server_tokens off;
+          proxy_hide_header X-Powered-By;
+          rewrite ^/.well-known/webfinger /index.php/.well-known/webfinger last;
+          rewrite ^/.well-known/nodeinfo /index.php/.well-known/nodeinfo last;
+          rewrite ^/.well-known/host-meta /public.php?service=host-meta last;
+          rewrite ^/.well-known/host-meta.json /public.php?service=host-meta-json;
+          location = /.well-known/carddav {
+            return 301 $scheme://$host/remote.php/dav;
+          }
+          location = /.well-known/caldav {
+            return 301 $scheme://$host/remote.php/dav;
+          }
+          location = /robots.txt {
+            allow all;
+            log_not_found off;
+            access_log off;
+          }
+          location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)/ {
+            deny all;
+          }
+          location ~ ^/(?:autotest|occ|issue|indie|db_|console) {
+            deny all;
+          }
+
+  spec:
+    ingressClassName: nginx-ivan     # (1) FORMA BUENA
+    rules:
+      - host: www.example.com # Esto no da de alta el nombre en un DNS... Esa es una operacion independiente
+        http:
+          paths:
+            - pathType: Prefix
+              backend:
+                service:
+                  name: exampleService
+                  port:
+                    number: 80
+              path: /
+    # This section is only required if TLS is to be enabled for the Ingress
+    tls:
+      - hosts:
+        - www.example.com
+        secretName: example-tls
+---
+#If TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:
+
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: example-tls
+  data:
+    tls.crt: <base64 encoded cert>
+    tls.key: <base64 encoded key>
+  type: kubernetes.io/tls
