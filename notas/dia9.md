@@ -516,3 +516,38 @@ Si solo tengo una replica:
 Hay 2 formas de sacar los pods de un nodo:
 - Drain (administrador del cluster) <--- Este es el que tiene en cuenta los pdbs
 - Taint :NoExecute 
+
+---
+
+kind:                Service
+apiVersion:          v1
+metadata:
+    name:              servicio-nginx
+spec:
+    selector:
+        app:           nginx
+    ports:
+      - protocol:    TCP
+        port:        80
+        targetPort:  80
+    type:            ClusterIP
+---
+
+kind:                Ingress
+apiVersion:          networking.k8s.io/v1
+metadata:
+    name:              ingress-nginx
+
+spec:
+    ingressClassName:  nginx-ivan
+    rules:
+      - host:          app.ivan.com
+        http:
+          paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: servicio-nginx
+                  port:
+                    number: 80

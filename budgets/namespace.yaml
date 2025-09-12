@@ -1,0 +1,32 @@
+
+---
+
+kind:             Namespace
+apiVersion:       v1
+metadata:
+    name:           prueba-ivan
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+    name: limits
+    namespace: prueba-ivan
+spec:
+    limits:
+      - default:                            # Default limit
+          memory: 20Mi
+        type: Container
+---
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: quota-ivan      
+  namespace: prueba-ivan
+
+spec:
+    hard:   
+        requests.memory:      120Mi
+        limits.memory:        120Mi
+
+---

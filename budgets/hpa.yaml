@@ -1,0 +1,31 @@
+
+kind:           HorizontalPodAutoscaler
+apiVersion:     autoscaling/v2
+
+metadata:
+  name:           hpa-ivan
+
+spec:
+    # Qué es lo que vamos a escalar... Suponiendo que tenemos un deployment con un nombre aaaaa
+    scaleTargetRef:
+        kind:       Deployment
+        name:       nginx
+        apiVersion: apps/v1
+    # Mínimo y máximo de réplicas admitidas
+    minReplicas: 2
+    maxReplicas: 4
+    # En base a qué métrica(s) se va a escalar
+    metrics:
+#      - type: Resource
+#        resource:
+#          name: cpu                 # memory
+#          target:
+#            type: Utilization # Trabaja en Porcentaje
+#            averageUtilization: 40  # Tendría en cuenta todas las réplicas y si el uso medio de cpu supera el 50% escalaría
+      - type: Resource
+        resource:
+          name: memory                 # memory
+          target:
+            # A veces queremos trabajar ocn valores absolutos
+            type: AverageValue # Trabaja en valores absolutos
+            averageValue: 3Mi 
