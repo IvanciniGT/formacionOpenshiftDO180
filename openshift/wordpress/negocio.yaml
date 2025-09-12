@@ -181,3 +181,19 @@ spec:
         persistentVolumeClaim:
           claimName:          wordpress-pvc
 
+
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: wordpress
+spec:
+  to:
+    kind: Service
+    name: wordpress
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+  wildcardPolicy: None
